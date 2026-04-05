@@ -2,6 +2,7 @@
 SwitchBot CO2センサー BLE スキャナー
 BLE アドバタイズメントを受信し、センサーデータを Lambda API に POST する
 """
+
 import asyncio
 import json
 import logging
@@ -10,11 +11,11 @@ import sys
 
 import httpx
 from bleak import BleakScanner
+from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
 from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest
 from botocore.credentials import Credentials
-from bleak.backends.device import BLEDevice
-from bleak.backends.scanner import AdvertisementData
 
 logging.basicConfig(
     level=logging.INFO,
@@ -156,8 +157,7 @@ async def main() -> None:
     scan_duration = float(os.environ.get("SCAN_DURATION", "5"))
 
     logger.info(
-        "Starting BLE scanner: device_id=%s device_mac=%s"
-        " interval=%ds scan=%.0fs",
+        "Starting BLE scanner: device_id=%s device_mac=%s interval=%ds scan=%.0fs",
         device_id,
         device_mac or "any",
         scan_interval,
@@ -169,17 +169,11 @@ async def main() -> None:
             try:
                 data = await scan_once(scan_duration, device_mac)
                 if data is None:
-                    logger.warning(
-                        "No SwitchBot CO2 sensor data found in scan window"
-                    )
+                    logger.warning("No SwitchBot CO2 sensor data found in scan window")
                 else:
-                    await post_sensor_data(
-                        http_client, api_url, aws_region, device_id, data
-                    )
+                    await post_sensor_data(http_client, api_url, aws_region, device_id, data)
             except httpx.HTTPStatusError as e:
-                logger.error(
-                    "API error: %s %s", e.response.status_code, e.response.text
-                )
+                logger.error("API error: %s %s", e.response.status_code, e.response.text)
             except Exception:
                 logger.exception("Unexpected error")
 
